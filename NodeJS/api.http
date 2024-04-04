@@ -1,0 +1,26 @@
+POST http://localhost:3333/events
+Content-Type: application/json
+
+
+{
+    "title": "Novo evento",
+    "details":"unite summit is a gathering of all the tech enthusiasts in the world",
+    "maximumAttendees": 1
+}
+
+###
+
+POST http://localhost:3333/events/0be3de43-4965-421d-81af-a97ed458af54/attendees
+Content-Type: application/json
+
+{
+    "name": "John Doe2",
+    "email": "email2@email.com"
+}
+
+###
+
+GET http://localhost:3333/events/0be3de43-4965-421d-81af-a97ed458af54
+
+###
+GET http://localhost:3333/attendees/1/badge
