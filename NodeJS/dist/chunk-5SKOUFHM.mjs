@@ -1,12 +1,17 @@
-import { ZodTypeProvider } from "fastify-type-provider-zod";
-import { z } from "zod";
-import { generateSlug } from "../utils/generate-slug";
-import { prisma } from "../lib/prisma";
-import { FastifyInstance } from "fastify";
-import { BadRequest } from "../_errors/bad_request";
+import {
+  generateSlug
+} from "./chunk-KDMJHR3Z.mjs";
+import {
+  BadRequest
+} from "./chunk-4YYRQZO4.mjs";
+import {
+  prisma
+} from "./chunk-JV6GRE7Y.mjs";
 
-export async function createEvent(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().post(
+// src/routes/create-event.ts
+import { z } from "zod";
+async function createEvent(app) {
+  app.withTypeProvider().post(
     "/events",
     {
       schema: {
@@ -15,48 +20,45 @@ export async function createEvent(app: FastifyInstance) {
         body: z.object({
           title: z.string().min(4),
           details: z.string().nullable(),
-          maximumAttendees: z.number().int().positive().nullable(),
+          maximumAttendees: z.number().int().positive().nullable()
         }),
         response: {
           201: z.object({
-            title: z
-              .string({
-                invalid_type_error: "Title must be a string",
-              })
-              .min(4),
+            title: z.string({
+              invalid_type_error: "Title must be a string"
+            }).min(4),
             details: z.string().nullable(),
             maximumAttendees: z.number().nullable(),
-            slug: z.string(),
-          }),
-        },
-      },
+            slug: z.string()
+          })
+        }
+      }
     },
     async (request, reply) => {
       console.log(request.body);
-
       const { title, details, maximumAttendees } = request.body;
       const slug = generateSlug(title);
-
       const eventWithSameSlug = await prisma.event.findFirst({
         where: {
-          slug,
-        },
+          slug
+        }
       });
-
       if (eventWithSameSlug) {
         throw new BadRequest("Event with same slug already exists");
       }
-
       const event = await prisma.event.create({
         data: {
           title,
           details,
           maximumAttendees,
-          slug,
-        },
+          slug
+        }
       });
-
       return reply.status(201).send(event);
     }
   );
 }
+
+export {
+  createEvent
+};
