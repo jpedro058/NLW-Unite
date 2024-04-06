@@ -11,35 +11,101 @@ import { IconButton } from "./Icon-button";
 import { Table } from "./table/table";
 import { TableHeader } from "./table/table-header";
 import { TableCell } from "./table/table-cell";
-import { useState } from "react";
-import { attendees } from "../data/attendees";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 
 dayjs.extend(relativeTime);
 
+interface Attendee {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  checkedInAt: string | null;
+}
+
 export function AttendeeList() {
-  const [inputValue, setInputValue] = useState("");
-  const [page, setPage] = useState(1);
-  const maxPage = Math.ceil(attendees.length / 10);
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [total, setTotal] = useState(0);
+
+  const [inputValue, setInputValue] = useState(() => {
+    const url = new URL(window.location.toString());
+
+    if (url.searchParams.has("search")) {
+      return url.searchParams.get("search") ?? "";
+    }
+
+    return "";
+  });
+
+  const [page, setPage] = useState(() => {
+    const url = new URL(window.location.toString());
+
+    if (url.searchParams.has("page")) {
+      return Number(url.searchParams.get("page"));
+    }
+
+    return 1;
+  });
+
+  const maxPage = Math.ceil(total / 10);
+
+  useEffect(() => {
+    const url = new URL(
+      "http://localhost:3333/events/9e9bd979-9d10-4915-b339-3786b1634f33/attendees"
+    );
+
+    url.searchParams.append("pageIndex", String(page - 1));
+    url.searchParams.append("query", inputValue);
+
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        setAttendees(data.attendees);
+        setTotal(data.total);
+      });
+  }, [page, inputValue]);
+
+  function setCurrentSearch(search: string) {
+    const url = new URL(window.location.toString());
+
+    url.searchParams.set("search", search);
+
+    window.history.pushState({}, "", url);
+
+    setInputValue(search);
+  }
+
+  function setCurrentPage(page: number) {
+    const url = new URL(window.location.toString());
+
+    url.searchParams.set("page", String(page));
+
+    window.history.pushState({}, "", url);
+
+    setPage(page);
+  }
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setInputValue(event.target.value);
+    setCurrentSearch(event.target.value);
+    setCurrentPage(1);
   }
 
   function goToFirstPage() {
-    setPage(1);
+    setCurrentPage(1);
   }
 
   function goToPreviousPage() {
-    setPage((prev) => prev - 1);
+    setCurrentPage(page - 1);
   }
 
   function goToNextPage() {
-    setPage((prev) => prev + 1);
+    setCurrentPage(page + 1);
   }
 
   function goToLastPage() {
-    setPage(Math.ceil(attendees.length / 10));
+    setCurrentPage(Math.ceil(total / 10));
   }
 
   return (
@@ -54,6 +120,7 @@ export function AttendeeList() {
             type="text"
             placeholder="Search for Members"
             onChange={handleInputChange}
+            value={inputValue}
           />
         </div>
       </div>
@@ -75,7 +142,7 @@ export function AttendeeList() {
           </tr>
         </thead>
         <tbody>
-          {attendees.slice((page - 1) * 10, page * 10).map((attendee) => (
+          {attendees.map((attendee) => (
             <tr
               key={attendee.id}
               className="border-b border-white/10 hover:bg-white/5 
@@ -98,7 +165,13 @@ export function AttendeeList() {
                 </div>
               </TableCell>
               <TableCell>{dayjs().to(attendee.createdAt)}</TableCell>
-              <TableCell>{dayjs().to(attendee.createdAt)}</TableCell>
+              <TableCell>
+                {attendee.checkedInAt ? (
+                  dayjs().to(attendee.checkedInAt)
+                ) : (
+                  <span className="text-zinc-500">Not checked in</span>
+                )}
+              </TableCell>
               <TableCell>
                 <IconButton transparent>
                   <MoreHorizontal className="size-4" />
@@ -110,13 +183,12 @@ export function AttendeeList() {
         <tfoot>
           <tr>
             <TableCell colSpan={3}>
-              Showing 10 of {attendees.length} entries
+              Showing {attendees.length} of {total} items
             </TableCell>
             <TableCell className="text-right" colSpan={3}>
               <div className="inline-flex items-center gap-8">
                 <span className="mr-2">
-                  Page {page} of {""}
-                  {Math.ceil(attendees.length / 10)}
+                  Page {page} of {maxPage}
                 </span>
                 <div className="flex gap-1.5">
                   <IconButton onClick={goToFirstPage} disabled={page === 1}>
